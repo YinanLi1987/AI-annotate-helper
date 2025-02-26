@@ -1,43 +1,51 @@
 import React, { useEffect, useState } from "react";
 import "./styles.css";
+import llms from "./llms";
 
 const Home = () => {
-  let llmCount = 0;
-
-  const [status, setStatus] = useState("Queue");
+  const [status, setStatus] = useState("");
   const [fineTunedLLMs, setFineTunedLLMs] = useState([]);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [savedPrompt, setSavedPrompt] = useState("");
+  const [trainFile, setTrainFile] = useState("");
+  const [valFile, setValFile] = useState("");
 
   function addLLM() {
     const llmSelect = document.getElementById("llmSelect");
     const llmName = llmSelect.options[llmSelect.selectedIndex].text;
-    const llmValue = llmSelect.value;
 
-    switchLLM(fineTunedLLMs.length);
-    // Simulate fine-tuning process
-    setStatus("Validated");
-    setTimeout(() => {
-      setStatus("Running");
-      setTimeout(() => {
-        setStatus("Successful");
-        setFineTunedLLMs((prev) => [...prev, llmName]);
-      }, 2000);
-    }, 2000);
+    // Trigger the creation of fine-tuning data
+    createFineTuningData(llmName).then((data) => {
+      if (data && data.trainFile && data.valFile) {
+        setTrainFile(data.trainFile);
+        setValFile(data.valFile);
+        setStatus("Fine-tuning Data Ready");
+      } else {
+        setStatus("Failed to create fine-tuning data.");
+      }
+    });
   }
 
-  function switchLLM(llmId) {
-    const tabs = document.querySelectorAll(".llmTab");
-    const results = document.querySelectorAll(".llmResult");
-
-    tabs.forEach((tab) => tab.classList.remove("active"));
-    results.forEach((result) => result.classList.remove("active"));
-
-    document
-      .querySelector(`.llmTab[data-llm-id="${llmId}"]`)
-      .classList.add("active");
-    document.getElementById(`llmResult-${llmId}`).classList.add("active");
+  async function createFineTuningData(llmName) {
+    const csvFile = uploadedFiles[0]; // Assuming the first uploaded file is the CSV file
+    try {
+      const response = await fetch(
+        "http://localhost:3001/create-fine-tuning-data",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt: savedPrompt, csvFile }),
+        }
+      );
+      const data = await response.json();
+      console.log(data.message);
+      return { trainFile: data.trainFile, valFile: data.valFile };
+    } catch (error) {
+      console.error("Error:", error);
+    }
   }
 
   function submitPrompt() {
@@ -58,6 +66,7 @@ const Home = () => {
         console.error("Error:", error);
       });
   }
+
   function handleFileUpload(event) {
     event.preventDefault();
     const formData = new FormData();
@@ -85,6 +94,7 @@ const Home = () => {
         setUploadMessage("File upload failed.");
       });
   }
+
   function handleFileDelete(filename) {
     fetch(`http://localhost:3001/delete/${filename}`, {
       method: "DELETE",
@@ -112,10 +122,10 @@ const Home = () => {
               <a href="index.html">Y/N</a>
             </li>
             <li>
-              <a href="about.html">PICO</a>
+              <a href="pico.html">PICO</a>
             </li>
             <li>
-              <a href="contact.html">About</a>
+              <a href="about.html">About</a>
             </li>
           </ul>
         </nav>
@@ -124,9 +134,9 @@ const Home = () => {
         <section>
           <h2>Introduction</h2>
           <p>
-            You can fine-tuning various LLMs for Y/N task, PICO extraction task
+            You can fine-tune various LLMs for Y/N task, PICO extraction task
             here easily. It provides Confusion matrix and ROC results for each
-            LLMs. So you will find the best LLMs for your task.
+            LLM. So you will find the best LLM for your task.
           </p>
         </section>
         <section>
@@ -144,15 +154,17 @@ const Home = () => {
             <button type="submit">Upload</button>
           </form>
           {uploadMessage && <p>{uploadMessage}</p>}
-          <h3>Uploaded Files:</h3>
-          <ul>
-            {uploadedFiles.map((file, index) => (
-              <li key={index}>
-                {file}
-                <button onClick={() => handleFileDelete(file)}>Delete</button>
-              </li>
-            ))}
-          </ul>
+          <div className="uploaded-files">
+            <h3>Uploaded Files:</h3>
+            <ul>
+              {uploadedFiles.map((file, index) => (
+                <li key={index}>
+                  {file}
+                  <button onClick={() => handleFileDelete(file)}>Delete</button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
         <section>
           <h2>Input Prompt</h2>
@@ -186,30 +198,33 @@ const Home = () => {
           </div>
         </section>
         <section>
-          <h2>Fine-tune LLM</h2>
+          <h2>Prepare Fine-tune Data & Validate Data</h2>
           <form id="llmForm">
             <label htmlFor="llmSelect">Choose LLM:</label>
             <select id="llmSelect" name="llmSelect">
-              <option value="gpt-3">GPT-3</option>
-              <option value="gpt-4">GPT-4</option>
-              <option value="bert">BERT</option>
-              <option value="t5">T5</option>
+              {llms.map((llm) => (
+                <option key={llm.value} value={llm.value}>
+                  {llm.label}
+                </option>
+              ))}
             </select>
             <button type="button" onClick={addLLM}>
-              Start Fine-tuning
+              Prepare Data
             </button>
           </form>
           <div className="status-bar">
             <p>Status: {status}</p>
           </div>
-          <div className="fine-tuned-llms">
-            <h3>Fine-tuned LLMs:</h3>
-            <ul>
-              {fineTunedLLMs.map((llm, index) => (
-                <li key={index}>{llm}</li>
-              ))}
-            </ul>
-          </div>
+          {status === "Fine-tuning Data Ready" && (
+            <div className="fine-tuned-llms">
+              <h3>Fine-tuned LLMs:</h3>
+              <ul>
+                {fineTunedLLMs.map((llm, index) => (
+                  <li key={index}>{llm}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       </main>
       <footer>
