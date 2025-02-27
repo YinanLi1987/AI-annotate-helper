@@ -282,3 +282,60 @@ tr.hidden {
     padding: 10px;
     border-radius: 4px;
 }
+
+.upload-section {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .upload-section button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .upload-section button:hover {
+    background-color: #0056b3;
+  }
+  
+  .upload-section p {
+    margin-top: 10px;
+    color: #28a745;
+    font-weight: bold;
+  }
+  .fine-tune-section {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .fine-tune-section button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .fine-tune-section button:hover {
+    background-color: #218838;
+  }
+  
+  .fine-tune-section p {
+    margin-top: 10px;
+    color: #28a745;
+    font-weight: bold;
+  }

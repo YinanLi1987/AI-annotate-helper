@@ -25,3 +25,4 @@ yarn-error.log*
 data
 .env
 back-end/data
+back-end/.env

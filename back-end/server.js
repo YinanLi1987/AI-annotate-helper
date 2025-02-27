@@ -5,7 +5,7 @@ const fileRoutes = require("./routes/fileRoutes");
 
 const app = express();
 const port = 3001;
-
+require("dotenv").config();
 app.use(bodyParser.json());
 app.use(cors()); // Enable CORS
 // Use the file routes

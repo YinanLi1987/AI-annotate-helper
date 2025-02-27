@@ -4,12 +4,18 @@ import llms from "./llms";
 
 const Home = () => {
   const [status, setStatus] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [fineTuneStatus, setFineTuneStatus] = useState(""); // New state for fine-tuning status
   const [fineTunedLLMs, setFineTunedLLMs] = useState([]);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [savedPrompt, setSavedPrompt] = useState("");
   const [trainFile, setTrainFile] = useState("");
   const [valFile, setValFile] = useState("");
+  const [trainFileId, setTrainFileId] = useState("");
+  const [valFileId, setValFileId] = useState("");
+  const [llmResponse, setLLMResponse] = useState(""); // New state for LLM response
+  const [processedCSV, setProcessedCSV] = useState(""); // New state for processed CSV
 
   function addLLM() {
     const llmSelect = document.getElementById("llmSelect");
@@ -47,7 +53,70 @@ const Home = () => {
       console.error("Error:", error);
     }
   }
+  async function uploadFineTuningDataToOpenAI() {
+    try {
+      const response = await fetch(
+        "http://localhost:3001/upload-training-data",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ trainFile, valFile }),
+        }
+      );
+      const data = await response.json();
+      console.log(data.message);
+      setUploadStatus("Fine-tuning data uploaded to LLM successfully.");
+      setTrainFileId(data.trainFileId); // Store trainFileId
+      setValFileId(data.valFileId); // Store valFileId
+    } catch (error) {
+      console.error("Error:", error);
+      setUploadStatus("Failed to upload fine-tuning data to LLM.");
+    }
+  }
 
+  async function fineTuneLLM() {
+    try {
+      const response = await fetch("http://localhost:3001/fine-tune-llm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ trainFileId, valFileId }),
+      });
+      const data = await response.json();
+      console.log(data.message);
+      setFineTuneStatus(data.message);
+    } catch (error) {
+      console.error("Error:", error);
+      setFineTuneStatus("Failed to fine-tune the model.");
+    }
+  }
+  async function processCSVWithFineTunedLLM(event) {
+    event.preventDefault();
+    const formData = new FormData();
+    const fileField = document.getElementById("processCSVFile");
+
+    formData.append("csvFile", fileField.files[0]);
+    formData.append("model", "gpt-4o-mini-2024-07-18");
+
+    try {
+      const response = await fetch(
+        "http://localhost:3001/process-csv-with-fine-tuned-llm",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      setProcessedCSV(url);
+    } catch (error) {
+      console.error("Error:", error);
+      setProcessedCSV("Failed to process CSV with fine-tuned LLM.");
+    }
+  }
   function submitPrompt() {
     const promptInput = document.getElementById("promptInput").value;
     fetch("http://localhost:3001/save-prompt", {
@@ -115,17 +184,20 @@ const Home = () => {
   return (
     <div>
       <header>
-        <h1>Fine-tuning LLMs Helper</h1>
+        <h1>LLMs Helper</h1>
         <nav>
           <ul>
             <li>
-              <a href="index.html">Y/N</a>
+              <a href="index.html">Y or N</a>
             </li>
             <li>
               <a href="pico.html">PICO</a>
             </li>
             <li>
-              <a href="about.html">About</a>
+              <a href="about.html">Knowledge Map</a>
+            </li>
+            <li>
+              <a href="about.html">About Us</a>
             </li>
           </ul>
         </nav>
@@ -215,16 +287,21 @@ const Home = () => {
           <div className="status-bar">
             <p>Status: {status}</p>
           </div>
-          {status === "Fine-tuning Data Ready" && (
-            <div className="fine-tuned-llms">
-              <h3>Fine-tuned LLMs:</h3>
-              <ul>
-                {fineTunedLLMs.map((llm, index) => (
-                  <li key={index}>{llm}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+        </section>
+        <section className="upload-section">
+          <h2>Upload to LLM</h2>
+          <button type="button" onClick={uploadFineTuningDataToOpenAI}>
+            Upload
+          </button>
+          {uploadStatus && <p>{uploadStatus}</p>} {/* Display upload status */}
+        </section>
+        <section className="fine-tune-section">
+          <h2>Fine-tune the LLM</h2>
+          <button type="button" onClick={fineTuneLLM}>
+            Start Fine-tuning
+          </button>
+          {fineTuneStatus && <p>{fineTuneStatus}</p>}{" "}
+          {/* Display fine-tuning status */}
         </section>
       </main>
       <footer>
